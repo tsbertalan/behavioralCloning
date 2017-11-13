@@ -1,0 +1,12 @@
+Pillow
+h5py
+keras
+flask
+python-socketio
+eventlet
+numpy
+scipy
+matplotlib
+sklearn
+
+moviepy

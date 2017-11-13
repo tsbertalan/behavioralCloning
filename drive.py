@@ -29,6 +29,7 @@ class SimplePIController:
         self.set_point = 0.
         self.error = 0.
         self.integral = 0.
+        self.verbose = False
 
     def set_desired(self, desired):
         self.set_point = desired
@@ -36,6 +37,7 @@ class SimplePIController:
     def update(self, measurement):
         # proportional error
         self.error = self.set_point - measurement
+        if self.verbose: print('PI error = %s - %s = %s' % (self.set_point, measurement, self.error))
 
         # integral error
         self.integral += self.error
@@ -43,9 +45,12 @@ class SimplePIController:
         return self.Kp * self.error + self.Ki * self.integral
 
 
-controller = SimplePIController(0.1, 0.002)
-set_speed = 9
-controller.set_desired(set_speed)
+controller = SimplePIController(0.05, 0.002)
+controller.set_desired(6)
+from collections import deque
+angleScalingFactor = 2
+boxSize = 4
+angleHistory = deque(maxlen=boxSize)
 
 
 @sio.on('telemetry')
@@ -59,14 +64,25 @@ def telemetry(sid, data):
         speed = data["speed"]
         # The current image from the center camera of the car
         imgString = data["image"]
+        # PIL is RGBA, I think.
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+
+        inp = image_array[None, :, :, :]
+        pred = model.predict(inp, batch_size=1)
+        _steering = pred.ravel()[0]
+        #_steering, _throttle, _brake = pred.ravel()
+        steering_angle = float(_steering)
+        # smoothing
+        angleHistory.append(steering_angle)
 
         throttle = controller.update(float(speed))
 
-        print(steering_angle, throttle)
-        send_control(steering_angle, throttle)
+        target = angleScalingFactor * sum(angleHistory) / len(angleHistory)
+
+        print('hatrho = %.2f = %.2f * mean(%s)' % (target, angleScalingFactor, [float('%.2f' % x) for x in angleHistory]))
+        print('angle %.4f, throttle %.4f' % (target, throttle))
+        send_control(target, throttle)
 
         # save frame
         if args.image_folder != '':

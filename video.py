@@ -1,3 +1,4 @@
+import os
 from moviepy.editor import ImageSequenceClip
 import argparse
 
@@ -15,9 +16,17 @@ def main():
         type=int,
         default=60,
         help='FPS (Frames per second) setting for the video.')
+    parser.add_argument(
+        '--filename',
+        type=str,
+        default='output_video.mp4',
+        help='File name within the output folder.'
+    )
     args = parser.parse_args()
 
-    video_file = args.image_folder + '.mp4'
+    filename = args.filename
+    if not filename.endswith('.mp4'): filename += '.mp4'
+    video_file = os.path.join(args.image_folder, filename)
     print("Creating video {}, FPS={}".format(video_file, args.fps))
     clip = ImageSequenceClip(args.image_folder, fps=args.fps)
     clip.write_videofile(video_file)
