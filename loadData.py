@@ -29,6 +29,8 @@ class Data(object):
 
     def __init__(self, *args, **kwargs):
 
+        self.sidecamAdjustment = .05
+
         kwargs.setdefault('verbose', True)
 
         self.verbose = kwargs['verbose']
@@ -69,16 +71,22 @@ class Data(object):
 
         # Load the images into arrays.
         if self.verbose: 
-            pbar = tqdm.tqdm_notebook
+            bar = tqdm.tqdm_notebook(total=len(self.log)*3, unit='image')
+            def pbar(X):
+                for x in X:
+                    yield x
+                    bar.update()
         else:
-            pbar = lambda x, **kwargs: x
+            pbar = lambda x: x
+        getImg = lambda subPath: misc.imread(os.path.join(datadir, 'IMG', os.path.basename(subPath)))
+        sampleimage = getImg(self.log['left'][0])
         self.images = {
-            key: np.stack([
-                misc.imread(os.path.join(datadir, 'IMG', os.path.basename(subPath))) 
-                for subPath in pbar(self.log[key], desc=key)
-            ])
-            for key in ['left', 'center', 'right']
-        }       
+            key: np.empty((len(self.log), *sampleimage.shape))
+            for key in ('left', 'center', 'right')
+        }
+        for key in self.images.keys():
+            for i, subPath in enumerate(pbar(self.log[key])):
+                self.images[key][i, ...] = getImg(subPath)
         self.makeDataArrays()
 
     def filterSomeZeros(self, zeroKeepFraction=.5):
@@ -97,7 +105,6 @@ class Data(object):
             newsize = len(self)
             print('Reduced from %d to %d samples.' % (oldsize, newsize))
 
-
     def save(self, outpath=None):
         if outpath is None:
             outpath = os.path.join(self.datadir, 'XY.npz')
@@ -109,16 +116,29 @@ class Data(object):
 
     def makeDataArrays(self):
         # Make data arrays.
-        self.X = np.concatenate(
+        self.X = np.vstack(
             [
-                self.images[k][..., np.newaxis]
+                self.images[k]
                 for k in ('left', 'center', 'right')
             ],
-            axis=-1
         )
         if self.verbose: print('X is %.3g GB:' % (self.X.size / 2**30,), self.X.shape)
 
-        self.Y = np.stack([self.log['steering'], self.log['throttle'], self.log['brake']]).T
+        self.Y = np.vstack([
+            np.tile(np.array(y), 3)
+            for y in (self.log['steering'], self.log['throttle'], self.log['brake'])
+        ]).T
+
+        # Adjust steering angle for side camera views.
+        n = len(self.log)
+        for j in range(3):
+            if j == 0:
+                adj = +self.sidecamAdjustment
+            elif j == 1:
+                adj = 0
+            else:
+                adj = -self.sidecamAdjustment
+            self.Y[j*n:(j+1)*n, 0] += adj
         if self.verbose: print('Y is %.3g KB:' % (self.Y.size / 2**10,), self.Y.shape)
 
     def __add__(self, other):
@@ -137,7 +157,7 @@ class Data(object):
         return c
 
     def __len__(self):
-        return len(self.log)
+        return max(len(self.log), len(self.X))
 
     def frame2time(self, j):
         '''Convert filenames to epoch seconds.'''
@@ -145,24 +165,6 @@ class Data(object):
         y, m, d, h, mi, s, ms =  [int(x) for x in p.split('_')]
         t = datetime.datetime(y, m, d, h, mi, s, ms*1000)
         return (t - EPOCH).total_seconds()
-
-    def showFrames(self, stride=10, nr=6):
-        import matplotlib.pyplot as plt
-        data = self
-        t0 = data.frame2time(0)
-        fig, axes = plt.subplots(ncols=3, nrows=nr, figsize=(6, nr))
-        for j in range(len(axes)):
-            t = data.frame2time(j*stride) - t0
-            axes[j][0].set_ylabel('$t=%.3g$ [s]' % t, fontsize=10)
-            for ax, k in zip(axes[j], ['left', 'center', 'right']):
-                v = data.images[k]
-                ax.imshow(v[j*stride])
-                if j == 0:
-                    ax.set_title(k);
-                ax.set_xticks([]); ax.set_yticks([])
-        fig.tight_layout()
-        fig.subplots_adjust(wspace=0, hspace=0)
-        return fig, axes
 
 
 @contextmanager

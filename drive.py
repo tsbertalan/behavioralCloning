@@ -44,13 +44,18 @@ class SimplePIController:
 
         return self.Kp * self.error + self.Ki * self.integral
 
+    def reset(self):
+        '''Reset the integrator. Combats integral windup.'''
+        self.integral = 0
+
 
 controller = SimplePIController(0.05, 0.002)
 controller.set_desired(6)
 from collections import deque
 angleScalingFactor = 2
-boxSize = 4
+boxSize = 6
 angleHistory = deque(maxlen=boxSize)
+MAXTHROTTLE = .25
 
 
 @sio.on('telemetry')
@@ -73,11 +78,11 @@ def telemetry(sid, data):
         _steering = pred.ravel()[0]
         #_steering, _throttle, _brake = pred.ravel()
         steering_angle = float(_steering)
+
+        throttle = min(controller.update(float(speed)), MAXTHROTTLE)
+
         # smoothing
         angleHistory.append(steering_angle)
-
-        throttle = controller.update(float(speed))
-
         target = angleScalingFactor * sum(angleHistory) / len(angleHistory)
 
         print('hatrho = %.2f = %.2f * mean(%s)' % (target, angleScalingFactor, [float('%.2f' % x) for x in angleHistory]))
@@ -90,6 +95,7 @@ def telemetry(sid, data):
             image_filename = os.path.join(args.image_folder, timestamp)
             image.save('{}.jpg'.format(image_filename))
     else:
+        controller.reset()
         # NOTE: DON'T EDIT THIS.
         sio.emit('manual', data={}, skip_sid=True)
 
