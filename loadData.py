@@ -6,6 +6,7 @@ import pandas as pd
 from pandas.compat import StringIO
 from scipy import misc
 import tqdm
+import sklearn.utils  # shuffle
 
 HOME = os.path.expanduser('~')
 EPOCH = datetime.datetime(1970, 1, 1)
@@ -36,6 +37,7 @@ class DataGenerator(object):
         zipPaths, 
         sidecamAdjustment=.05, verbose=True, validationFraction=.2, batchBaseSize=32,
         responseKeys=('steering',),
+        shuffleBatch=True,
         ):
 
         # Set attributes.
@@ -44,12 +46,14 @@ class DataGenerator(object):
         self.batchBaseSize = batchBaseSize
         self.responseKeys = responseKeys
         self.validationFraction = validationFraction
+        self.shuffleBatch = shuffleBatch
 
         # Unzip the archives and load all the log files.
         if isinstance(zipPaths, str):
             zipPaths = [zipPaths]
         assert len(zipPaths) > 0
         self.log = None
+        self.subLogLengths = []
         for path in zipPaths:
             # Unzip the zipfile.
             datadir = getDataDir(unzip(path, verbose=verbose))
@@ -65,7 +69,8 @@ class DataGenerator(object):
                 logdata = ','.join(collabels) + '\n' + logdata
 
             # Read with Pandas.
-            newLog = pd.read_csv(StringIO(logdata))[:MAXDATA]
+            newLog = pd.read_csv(StringIO(logdata))
+            self.subLogLengths.append(len(newLog))
 
             # Make image paths absolute.
             for key in _LCR:
@@ -80,11 +85,28 @@ class DataGenerator(object):
                 self.log = pd.concat([self.log, newLog], ignore_index=True)
 
     def shuffle(self):
-        # Generate shuffled indices.
-        shuffledIndices = np.random.permutation(len(self.log))
-        splitIndex = int(self.validationFraction * len(shuffledIndices))
-        validationIndices = shuffledIndices[:splitIndex]
-        trainIndices = shuffledIndices[splitIndex:]
+        # Take last part of each sublog as a validation set.
+        # Taking a random subset doesn't work as well since validation
+        # samples might be very similar to adjacent training samples.
+        validationIndices = []
+        trainIndices = []
+        start = 0
+        for sublen in self.subLogLengths:
+            end = start + sublen
+            nvalid = int(sublen * self.validationFraction)
+            trainIndices.append(
+                np.arange(start, end-nvalid)
+            )
+            validationIndices.append(
+                np.arange(end-nvalid, end)
+            )
+            start += sublen
+        trainIndices = np.vstack(trainIndices)
+        validationIndices = np.vstack(validationIndices)
+        for ind in trainIndices, validationIndices:
+            np.random.shuffle(ind)
+            print(ind[:10])
+        
         self.__indices = [trainIndices, validationIndices]
 
         # Set index state for the generator.
@@ -143,6 +165,8 @@ class DataGenerator(object):
             y[0] += [self.sidecamAdjustment, 0, -self.sidecamAdjustment][icam]
             X.append(x)
             Y.append(y)
+
+        if self.shuffleBatch: X, Y = sklearn.utils.shuffle(X, Y)
 
         return np.vstack(X), np.vstack(Y)
 
