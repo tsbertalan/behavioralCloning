@@ -101,12 +101,11 @@ class DataGenerator(object):
                 np.arange(end-nvalid, end)
             )
             start += sublen
-        trainIndices = np.vstack(trainIndices)
-        validationIndices = np.vstack(validationIndices)
+        trainIndices = np.vstack(trainIndices).ravel()
+        validationIndices = np.vstack(validationIndices).ravel()
         for ind in trainIndices, validationIndices:
             np.random.shuffle(ind)
-            print(ind[:10])
-        
+
         self.__indices = [trainIndices, validationIndices]
 
         # Set index state for the generator.

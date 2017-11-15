@@ -48,7 +48,7 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.05, 0.001)
-controller.set_desired(8)
+controller.set_desired(16)
 
 from collections import deque
 angleScalingFactor = 1
