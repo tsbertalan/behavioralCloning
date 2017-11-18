@@ -11,6 +11,7 @@ import eventlet.wsgi
 from PIL import Image
 from flask import Flask
 from io import BytesIO
+import tqdm
 
 from nnUtils import loadModel
 
@@ -48,17 +49,16 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.05, 0.001)
-controller.set_desired(16)
+controller.set_desired(12)
 
 from collections import deque
-angleScalingFactor = 1
-boxSize = 1
-angleHistory = deque(maxlen=boxSize)
 MAXTHROTTLE = 10
 
+pbar = tqdm.tqdm(unit='frames')
 
 @sio.on('telemetry')
 def telemetry(sid, data):
+    pbar.update()
     if data:
         # The current steering angle of the car
         steering_angle = data["steering_angle"]
@@ -77,16 +77,9 @@ def telemetry(sid, data):
         _steering = pred.ravel()[0]
         #_steering, _throttle, _brake = pred.ravel()
         steering_angle = float(_steering)
-
         throttle = min(controller.update(float(speed)), MAXTHROTTLE)
 
-        # smoothing
-        angleHistory.append(steering_angle)
-        target = angleScalingFactor * sum(angleHistory) / len(angleHistory)
-
-        print('hatrho = %.2f = %.2f * mean(%s)' % (target, angleScalingFactor, [float('%.2f' % x) for x in angleHistory]))
-        print('angle %.4f, throttle %.4f' % (target, throttle))
-        send_control(target, throttle)
+        send_control(steering_angle, throttle)
 
         # save frame
         if args.image_folder != '':

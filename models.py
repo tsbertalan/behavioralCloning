@@ -74,6 +74,9 @@ def Nvidia(
 
     # Normalize.
     x = img_input = keras.layers.Input(input_shape)
+    x = keras.layers.Cropping2D(
+        cropping=((52, input_shape[0]-142), (0,0)),
+    )(x)
     x = keras.layers.Lambda(lambda y: (y / 255.0) - 0.5)(x)
 
     # Convolutional layers
