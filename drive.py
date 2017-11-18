@@ -49,7 +49,7 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.05, 0.001)
-controller.set_desired(12)
+controller.set_desired(25)
 
 from collections import deque
 MAXTHROTTLE = 10
@@ -94,7 +94,6 @@ def telemetry(sid, data):
 
 @sio.on('connect')
 def connect(sid, environ):
-    print("connect ", sid)
     send_control(0, 0)
 
 

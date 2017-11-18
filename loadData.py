@@ -165,8 +165,6 @@ class DataGenerator(object):
             X.append(x)
             Y.append(y)
 
-        if self.shuffleBatch: X, Y = sklearn.utils.shuffle(X, Y)
-
         return np.vstack(X), np.vstack(Y)
 
     @property
@@ -187,6 +185,8 @@ class DataGenerator(object):
             x, y = self.sample(validation=validation)
             X[j*self.rowsPerSample:(j+1)*self.rowsPerSample, ...] = x
             Y[j*self.rowsPerSample:(j+1)*self.rowsPerSample, ...] = y
+
+        if self.shuffleBatch: X, Y = sklearn.utils.shuffle(X, Y)
 
         return X, Y
 
@@ -239,6 +239,18 @@ class DataGenerator(object):
 
     def __len__(self):
         return self.rowsPerSample * len(self.log)
+
+
+class CenterOnlyDataGenerator(DataGenerator):
+
+    rowsPerSample = 1
+    def sample(self, validation=False):
+        lcrImagePaths, response = self.sampleRow(validation=validation)
+        x = misc.imread(lcrImagePaths[1])
+        x = x.reshape((1, *x.shape))
+        y = np.copy(response)
+
+        return x, y
 
 
 @contextmanager

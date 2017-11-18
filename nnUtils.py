@@ -68,6 +68,7 @@ def fitModelWithDataGenerator(
 
     if 'TensorBoardCallback' in callbacks:
         log_dir = '/home/tsbertalan/tensorboardlogs/behavClon/%s-%s/'% (modelName, time.time())
+        print('Logging to tensorboard at %s.' % log_dir)
         callbacks[callbacks.index('TensorBoardCallback')] = TensorBoardCallback(
             log_dir=log_dir,
         )

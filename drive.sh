@@ -1,6 +1,6 @@
 mostRecent=`ls -t ~/data2/behavioralCloning/*.h5 | head -n 1`
 echo
-echo "Most recent snapshot is $mostRecent."
+echo "Most recent save is $mostRecent."
 echo
 sleep 2
 # Suppress tensorflow warnings
