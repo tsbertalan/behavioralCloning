@@ -15,6 +15,10 @@ import tqdm
 
 from nnUtils import loadModel
 
+import tkinter as tk
+
+from gauges import RotaryScale, root
+
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
@@ -29,9 +33,13 @@ class SimplePIController:
         self.error = 0.
         self.integral = 0.
         self.verbose = False
+        self.setPointGauge = RotaryScale(
+            max_value=30, unit='MPH', name='Speed Set Point'
+        )
 
     def set_desired(self, desired):
         self.set_point = desired
+        self.setPointGauge.set_value(desired)
 
     def update(self, measurement):
         # proportional error
@@ -55,6 +63,13 @@ controller.set_desired(baseSpeedTarget)
 MAXTHROTTLE = 10
 
 pbar = tqdm.tqdm(unit='frames')
+
+steeringAngleGauge = RotaryScale(
+    max_value=180., 
+    unit='°',
+    name='Steering Angle',
+    img_data='emptyGauge'
+)
 
 from collections import deque
 class Smoother(object):
@@ -103,6 +118,10 @@ def telemetry(sid, data):
         speedTarget *= np.abs(1 - 2 * np.abs(steering_angle))
         speedTarget = setPointSmoother(speedTarget)
         controller.set_desired(speedTarget)
+
+        steeringAngleGauge.set_value(
+            steering_angle * 180 / 3.14159 + 90.
+        )
         throttle = min(controller.update(float(speed)), MAXTHROTTLE)
 
         send_control(steering_angle, throttle)
@@ -116,6 +135,7 @@ def telemetry(sid, data):
         controller.reset()
         # NOTE: DON'T EDIT THIS.
         sio.emit('manual', data={}, skip_sid=True)
+    root.update()
 
 
 @sio.on('connect')
