@@ -253,6 +253,35 @@ class CenterOnlyDataGenerator(DataGenerator):
         return x, y
 
 
+class DeemphasizedZeroDataGenerator(DataGenerator):
+    zeroKeepProbability = .07
+    
+    def sampleRow(self, validation=False):
+
+        while True:
+            # Get the index and increment the state.
+            indices = self._indices[validation]
+            state = self._state[validation]
+            j = indices[state]
+
+            # Reset or increment the counter.
+            if self._state[validation] == len(indices) - 1:
+                self._state[validation] = 0
+            else:
+                self._state[validation] += 1
+
+            # Get the left, center, and right image paths
+            # and corresponding requested response variables.
+            lcrImagePaths = [self.log.at[j, key] for key in _LCR]
+            response = np.array([self.log.at[j, key] for key in self.responseKeys])
+            
+            # Check for acceptable steering angle.
+            if response[0] != 0 or np.random.uniform(0, 1) < self.zeroKeepProbability:
+                break
+            
+        return lcrImagePaths, response
+
+
 @contextmanager
 def timeit(label=None):
     """Context manager to print elapsed time.
@@ -270,3 +299,32 @@ def timeit(label=None):
     e = time.time()
     out = '%.1f sec elapsed.' % (e - s)
     print(out)
+
+
+def showxy(x, y, y2=None, ax=None, l1kwargs={}, l2kwargs={}):
+    if ax is None:
+        fig, ax = plt.subplots()
+    img = x
+    from models import cropping
+    ((fromTop, fromBottom), (fromLeft, fromRight)) = cropping
+    fromBottom = img.shape[0] - fromBottom
+    fromRight = img.shape[1] - fromRight
+    img = img[fromTop:fromBottom, fromLeft:fromRight, :]
+
+    ax.imshow(img)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    def addLine(angle, **kwargs):
+        x1 = img.shape[1] / 2
+        y1 = img.shape[0]
+
+        dy = img.shape[0] / 2
+        dx = dy * np.tan(angle)
+        ax.plot([x1, x1+dx], [y1, y1-dy], **kwargs)
+
+    addLine(y[0], **l1kwargs)
+    if y2 is not None:
+        addLine(y2[0], **l2kwargs)
+
+    return ax.figure, ax

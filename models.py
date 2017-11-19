@@ -63,6 +63,9 @@ def VGG(
         )
     return model
  
+# (from top, from bottom), (from left, from right)
+cropping = ((52, 18), (0, 0))
+
 
 def Nvidia(
     nout, input_shape,
@@ -75,7 +78,7 @@ def Nvidia(
     # Normalize.
     x = img_input = keras.layers.Input(input_shape)
     x = keras.layers.Cropping2D(
-        cropping=((52, input_shape[0]-142), (0,0)),
+        cropping=cropping,
     )(x)
     x = keras.layers.Lambda(lambda y: (y / 255.0) - 0.5)(x)
 
