@@ -49,12 +49,32 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.05, 0.001)
-controller.set_desired(25)
+baseSpeedTarget = 25
+controller.set_desired(baseSpeedTarget)
 
-from collections import deque
 MAXTHROTTLE = 10
 
 pbar = tqdm.tqdm(unit='frames')
+
+from collections import deque
+class Smoother(object):
+
+    def __init__(self, initial=0, callback=lambda mean: mean, **kwargs):
+        self.q = deque(**kwargs)
+        self.callback = callback
+        self(initial)
+
+    def __call__(self, value):
+        self.q.append(value)
+        return self.callback(self.value)
+
+    def __len__(self):
+        return len(self.q)
+
+    @property
+    def value(self):
+        return np.mean(self.q)
+setPointSmoother = Smoother(maxlen=60)
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -77,6 +97,12 @@ def telemetry(sid, data):
         _steering = pred.ravel()[0]
         #_steering, _throttle, _brake = pred.ravel()
         steering_angle = float(_steering)
+        
+        # If we've been turning sharply lately, decrease speed.
+        speedTarget = float(baseSpeedTarget)
+        speedTarget *= np.abs(1 - 2 * np.abs(steering_angle))
+        speedTarget = setPointSmoother(speedTarget)
+        controller.set_desired(speedTarget)
         throttle = min(controller.update(float(speed)), MAXTHROTTLE)
 
         send_control(steering_angle, throttle)
