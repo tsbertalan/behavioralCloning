@@ -34,7 +34,7 @@ class SimplePIController:
         self.integral = 0.
         self.verbose = False
         self.setPointGauge = RotaryScale(
-            max_value=30, unit='MPH', name='Speed Set Point', needle_color='white',
+            max_value=30, unit='MPH', name='Speed Set Point',
         )
 
     def set_desired(self, desired):
@@ -56,12 +56,10 @@ class SimplePIController:
         self.integral = 0
 
 
-controller = SimplePIController(0.05, 0.001)
-baseSpeedTarget = 30
-controller.set_desired(baseSpeedTarget)
 
-MAXTHROTTLE = 10
-
+maxThrottle = 2
+minSpeed = 1.0
+slowdownFactor = 1.5 # 1 is good enough for the main track; need more for the jungle.
 pbar = tqdm.tqdm(unit='frames')
 
 steeringAngleGauge = RotaryScale(
@@ -71,6 +69,17 @@ steeringAngleGauge = RotaryScale(
     img_data='emptyGauge',
     angleDirect=True,
     needle_color='red',
+)
+
+controller = SimplePIController(0.05, 0.001)
+baseSpeedTarget = 30  # Can do 30 on the main track; need more like 12 for the jungle.
+controller.set_desired(baseSpeedTarget)
+
+throttleGauge = RotaryScale(
+    max_value=maxThrottle,
+    min_value=maxThrottle/-2.,
+    unit='',
+    name='Throttle',
 )
 
 from collections import deque
@@ -117,15 +126,17 @@ def telemetry(sid, data):
         
         # If we've been turning sharply lately, decrease speed.
         speedTarget = float(baseSpeedTarget)
-        speedTarget *= np.abs(1 - 2 * np.abs(steering_angle))
-        setPointSmoother(speedTarget)
+        speedTarget *= np.abs(1 - slowdownFactor * np.abs(steering_angle))
+        setPointSmoother(max(speedTarget, minSpeed))
 
+        # It looks like angles actually aren't reported in radians or degrees.
+        radsPerUnit = .437
         steeringAngleGauge.set_value(
-            steering_angle * 180 / 3.14159 + 90. + 180,
-            steering_angle * 180 / 3.14159
+            radsPerUnit * steering_angle * 180 / 3.14159 + 90. + 180,
+            radsPerUnit * steering_angle * 180 / 3.14159
         )
-        throttle = min(controller.update(float(speed)), MAXTHROTTLE)
-
+        throttle = min(controller.update(float(speed)), maxThrottle)
+        throttleGauge.set_value(throttle)
         send_control(steering_angle, throttle)
 
         # save frame

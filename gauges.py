@@ -8,8 +8,8 @@ class RotaryScale(tk_tools.RotaryScale):
     Shows a rotary scale, much like a speedometer.
     """
     def __init__(self, 
-        parent=root, max_value=100.0, size=100, unit='', img_data='',
-        needle_color='blue', needle_thickness=0, name='', 
+        parent=root, min_value=0.0, max_value=100.0, size=100, unit='', img_data='',
+        needle_color='white', needle_thickness=0, name='', 
         angleDirect=False, **options
         ):
         """
@@ -24,6 +24,7 @@ class RotaryScale(tk_tools.RotaryScale):
         tk_tools.Dial.__init__(self, parent, size=size, **options)
 
         self.max_value = float(max_value)
+        self.min_value = float(min_value)
         self.size = size
         self.unit = unit
         self.needle_color = needle_color
@@ -70,7 +71,7 @@ class RotaryScale(tk_tools.RotaryScale):
 
         if not self.angleDirect:
             number = number if number <= self.max_value else self.max_value
-            number = 0.0 if number < 0.0 else number
+            number = self.min_value if number < self.min_value else number
 
         radius = 0.9 * self.size/2.0
         if self.angleDirect:
