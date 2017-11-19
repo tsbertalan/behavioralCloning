@@ -34,7 +34,7 @@ class SimplePIController:
         self.integral = 0.
         self.verbose = False
         self.setPointGauge = RotaryScale(
-            max_value=30, unit='MPH', name='Speed Set Point'
+            max_value=30, unit='MPH', name='Speed Set Point', needle_color='white',
         )
 
     def set_desired(self, desired):
@@ -68,7 +68,9 @@ steeringAngleGauge = RotaryScale(
     max_value=180., 
     unit='°',
     name='Steering Angle',
-    img_data='emptyGauge'
+    img_data='emptyGauge',
+    angleDirect=True,
+    needle_color='red',
 )
 
 from collections import deque
@@ -119,7 +121,8 @@ def telemetry(sid, data):
         setPointSmoother(speedTarget)
 
         steeringAngleGauge.set_value(
-            steering_angle * 180 / 3.14159 + 90.
+            steering_angle * 180 / 3.14159 + 90. + 180,
+            steering_angle * 180 / 3.14159
         )
         throttle = min(controller.update(float(speed)), MAXTHROTTLE)
 

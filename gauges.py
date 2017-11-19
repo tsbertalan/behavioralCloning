@@ -1,4 +1,4 @@
-import cmath, tkinter as tk, tk_tools
+import cmath, tkinter as tk, tk_tools, numpy as np
 from tk_tools.images import rotary_scale
 
 root = tk.Tk()
@@ -9,7 +9,8 @@ class RotaryScale(tk_tools.RotaryScale):
     """
     def __init__(self, 
         parent=root, max_value=100.0, size=100, unit='', img_data='',
-        needle_color='blue', needle_thickness=0, name='', **options
+        needle_color='blue', needle_thickness=0, name='', 
+        angleDirect=False, **options
         ):
         """
         Initializes the RotaryScale object
@@ -27,6 +28,7 @@ class RotaryScale(tk_tools.RotaryScale):
         self.unit = unit
         self.needle_color = needle_color
         self.needle_thickness = needle_thickness
+        self.angleDirect = angleDirect
 
         row = 0
         if name != '':
@@ -55,7 +57,7 @@ class RotaryScale(tk_tools.RotaryScale):
 
         self.grid()
 
-    def set_value(self, number: float):
+    def set_value(self, number: float, displayValue=None):
         """
         Sets the value of the graphic
 
@@ -66,12 +68,16 @@ class RotaryScale(tk_tools.RotaryScale):
         self.canvas.delete('all')
         self.canvas.create_image(0, 0, image=self.image, anchor='nw')
 
-        number = number if number <= self.max_value else self.max_value
-        number = 0.0 if number < 0.0 else number
+        if not self.angleDirect:
+            number = number if number <= self.max_value else self.max_value
+            number = 0.0 if number < 0.0 else number
 
         radius = 0.9 * self.size/2.0
-        angle_in_radians = (2.0 * cmath.pi / 3.0) \
-            + number / self.max_value * (5.0 * cmath.pi / 3.0)
+        if self.angleDirect:
+            angle_in_radians = number * np.pi / 180
+        else:
+            angle_in_radians = (2.0 * cmath.pi / 3.0) \
+                + number / self.max_value * (5.0 * cmath.pi / 3.0)
 
         center = cmath.rect(0, 0)
         outer = cmath.rect(radius, angle_in_radians)
@@ -88,4 +94,7 @@ class RotaryScale(tk_tools.RotaryScale):
             fill=self.needle_color
         )
 
-        self.readout['text'] = '{:.4g}{}'.format(number, self.unit)
+        self.readout['text'] = '{:.4g}{}'.format(
+            displayValue if displayValue else number,
+            self.unit
+        )
