@@ -57,7 +57,7 @@ class SimplePIController:
 
 
 controller = SimplePIController(0.05, 0.001)
-baseSpeedTarget = 25
+baseSpeedTarget = 30
 controller.set_desired(baseSpeedTarget)
 
 MAXTHROTTLE = 10
@@ -89,7 +89,7 @@ class Smoother(object):
     @property
     def value(self):
         return np.mean(self.q)
-setPointSmoother = Smoother(maxlen=60)
+setPointSmoother = Smoother(maxlen=60, callback=controller.set_desired)
 
 @sio.on('telemetry')
 def telemetry(sid, data):
@@ -116,8 +116,7 @@ def telemetry(sid, data):
         # If we've been turning sharply lately, decrease speed.
         speedTarget = float(baseSpeedTarget)
         speedTarget *= np.abs(1 - 2 * np.abs(steering_angle))
-        speedTarget = setPointSmoother(speedTarget)
-        controller.set_desired(speedTarget)
+        setPointSmoother(speedTarget)
 
         steeringAngleGauge.set_value(
             steering_angle * 180 / 3.14159 + 90.
