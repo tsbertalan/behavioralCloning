@@ -3,6 +3,11 @@ import time
 import tensorflow as tf, keras
 import h5py
 
+def isInteractive():
+    import __main__ as main
+    return not hasattr(main, '__file__')
+
+
 class TensorBoardCallback(keras.callbacks.TensorBoard):
     
     def __init__(self, *args, **kwargs):
@@ -26,14 +31,19 @@ class TensorBoardCallback(keras.callbacks.TensorBoard):
 
         self.seen += self.batch_size
 
+
 class TqdmCallback(keras.callbacks.Callback):
     def __init__(self, nbatch):
-        self.pbar = tqdm.tqdm_notebook(total=nbatch, unit='epoch')
+        if isInteractive():
+            Pbar = tqdm.tqdm_notebook
+        else:
+            Pbar = tqdm.tqdm
+        self.pbar = Pbar(total=nbatch, unit='batch')
     
     def on_train_begin(self, logs={}):
         pass
 
-    def on_epoch_end(self, epoch, logs={}):
+    def on_batch_end(self, batch, logs={}):
         self.pbar.update()
 
 
@@ -57,14 +67,12 @@ def fitModelWithDataGenerator(
     model, dataGenerator, modelName,
     epochs=32,
     callbacks=['TqdmCallback', 'TensorBoardCallback'],
-    verbose=1,
+    verbose=0,
     **kwargs
     ):
     trainGen = dataGenerator.generate()
     validGen = dataGenerator.generate(validation=True)
-
-    if 'TqdmCallback' in callbacks:
-        callbacks[callbacks.index('TqdmCallback')] = TqdmCallback(epochs)
+    steps_per_epoch = len(trainGen)
 
     if 'TensorBoardCallback' in callbacks:
         log_dir = '/home/tsbertalan/tensorboardlogs/behavClon/%s-%s/'% (modelName, time.time())
@@ -73,9 +81,14 @@ def fitModelWithDataGenerator(
             log_dir=log_dir,
         )
 
+    if 'TqdmCallback' in callbacks:
+        callbacks[callbacks.index('TqdmCallback')] = TqdmCallback(
+            epochs*steps_per_epoch
+        )
+
     return model.fit_generator(
         trainGen,
-        steps_per_epoch=len(trainGen),
+        steps_per_epoch=steps_per_epoch,
         validation_data=validGen,
         validation_steps=len(validGen),
         epochs=epochs,

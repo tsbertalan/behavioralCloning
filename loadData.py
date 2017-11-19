@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from pandas.compat import StringIO
 from scipy import misc
-import tqdm
 import sklearn.utils  # shuffle
 
 HOME = os.path.expanduser('~')
@@ -29,7 +28,9 @@ def getDataDir(zipOutDir):
         zipOutDir = os.path.join(zipOutDir, dirs[0])
     return zipOutDir
 
+
 _LCR = ('left', 'center', 'right')
+
 
 class DataGenerator(object):
 
