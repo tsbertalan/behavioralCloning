@@ -10,15 +10,16 @@ def isInteractive():
 
 class TensorBoardCallback(keras.callbacks.TensorBoard):
     
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, everyK=1, **kwargs):
         keras.callbacks.TensorBoard.__init__(self, *args, **kwargs)
+        self.everyK = everyK
         self.write_batch_performance = True
         self.seen = 0
     
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
 
-        if self.write_batch_performance == True:
+        if self.write_batch_performance and not (batch % self.everyK):
             for name, value in logs.items():
                 if name in ['batch','size']:
                     continue
@@ -79,6 +80,7 @@ def fitModelWithDataGenerator(
         print('Logging to tensorboard at %s.' % log_dir)
         callbacks[callbacks.index('TensorBoardCallback')] = TensorBoardCallback(
             log_dir=log_dir,
+            everyK=10,
         )
 
     if 'TqdmCallback' in callbacks:
