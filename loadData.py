@@ -57,7 +57,12 @@ class DataGenerator(object):
         self.subLogLengths = []
         for path in zipPaths:
             # Unzip the zipfile.
-            datadir = getDataDir(unzip(path, verbose=verbose))
+            print('basename is', os.path.basename(path))
+            datadir = getDataDir(unzip(
+                path, verbose=verbose, 
+                outdir='/tmp/data/%s.dir/' % os.path.basename(path),
+            ))
+            print('Data is in %s.' % datadir)
 
             # Load the log data.
             with open(os.path.join(datadir, 'driving_log.csv')) as f:
@@ -102,8 +107,8 @@ class DataGenerator(object):
                 np.arange(end-nvalid, end)
             )
             start += sublen
-        trainIndices = np.vstack(trainIndices).ravel()
-        validationIndices = np.vstack(validationIndices).ravel()
+        trainIndices = np.hstack(trainIndices).ravel()
+        validationIndices = np.hstack(validationIndices).ravel()
         for ind in trainIndices, validationIndices:
             np.random.shuffle(ind)
 
