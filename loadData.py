@@ -22,6 +22,7 @@ def unzip(archivepath, outdir='/tmp/data/', verbose=True):
 
 
 def getDataDir(zipOutDir):
+    """Did we unzip directly? Or with an intermediate dir?"""
     dirs = os.listdir(zipOutDir)
     if 'IMG' not in dirs:
         assert len(dirs) > 0
@@ -33,10 +34,11 @@ _LCR = ('left', 'center', 'right')
 
 
 class DataGenerator(object):
+    """Load images as needed."""
 
     def __init__(self, 
         zipPaths, 
-        sidecamAdjustment=.05, verbose=True, validationFraction=.2, batchBaseSize=32,
+        sidecamAdjustment=.15, verbose=True, validationFraction=.2, batchBaseSize=25,
         responseKeys=('steering',),
         shuffleBatch=True,
         ):
@@ -212,14 +214,6 @@ class DataGenerator(object):
         return len(self._indices[validation])
 
     def generate(self, validation=False, stopOnEnd=False, epochSubsampling=1.0):
-        """Emit a generator that yields data for training.
-
-        epochSubsampling : float, optional
-            For faster training, this number can be artifically lowered,
-            causing faster epoch passage. Ensuing shuffling every "epoch" ensures that
-            all samples still have an equal chance of being seen.
-
-        """
         self.shuffle()
         assert 0 < epochSubsampling <= 1.0
 
@@ -260,6 +254,7 @@ class DataGenerator(object):
 
 
 class CenterOnlyDataGenerator(DataGenerator):
+    """Ignore left and right cameras."""
 
     rowsPerSample = 1
     def sample(self, validation=False):
@@ -272,6 +267,8 @@ class CenterOnlyDataGenerator(DataGenerator):
 
 
 class DeemphasizedZeroDataGenerator(DataGenerator):
+    """Sample zero-angle image/response pairs with decreased probability."""
+
     zeroKeepProbability = .07
     
     def sampleRow(self, validation=False):
@@ -321,9 +318,12 @@ def timeit(label=None):
 
 
 def showxy(x, y, y2=None, ax=None, l1kwargs={}, l2kwargs={}):
+    """Plot an image and its associated turn angle."""
     if ax is None:
         fig, ax = plt.subplots()
     img = x
+    if len(img.shape) == 4:
+        img = img.reshape((img.shape[1:]))
     from models import cropping
     ((fromTop, fromBottom), (fromLeft, fromRight)) = cropping
     fromBottom = img.shape[0] - fromBottom
@@ -335,6 +335,9 @@ def showxy(x, y, y2=None, ax=None, l1kwargs={}, l2kwargs={}):
     ax.set_yticks([])
 
     def addLine(angle, **kwargs):
+        degsPerUnit = 25.
+        radsPerUnit = degsPerUnit * 3.14159 / 180
+        angle *= radsPerUnit
         x1 = img.shape[1] / 2
         y1 = img.shape[0]
 

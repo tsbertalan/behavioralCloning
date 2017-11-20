@@ -9,5 +9,4 @@ scipy
 matplotlib
 sklearn
 moviepy
-tkinter
 tk_tools

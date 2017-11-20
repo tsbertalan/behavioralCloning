@@ -17,8 +17,6 @@ import tqdm
 
 from nnUtils import loadModel
 
-import tkinter as tk
-
 from gauges import RotaryScale, root
 
 sio = socketio.Server()

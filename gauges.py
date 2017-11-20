@@ -1,5 +1,7 @@
+"""Make some modifications to widgets from tk_tools"""
 import cmath, tkinter as tk, tk_tools, numpy as np
 from tk_tools.images import rotary_scale
+
 
 root = tk.Tk()
 

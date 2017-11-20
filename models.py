@@ -1,6 +1,7 @@
 import keras
 
 def prod(it):
+    """Like the sum() builtin, but a product."""
     out = 1
     for x in it:
         try:
@@ -41,10 +42,6 @@ def VGG(
     # Add layers.
     init = dict(bias_initializer='zeros', kernel_initializer='glorot_normal')
     x = keras.layers.Dense(16, activation='relu', **init)(x)
-#     for k in range(3):
-#         x = keras.layers.Dense(16, activation='relu', **init)(x)
-#     x = keras.layers.Dense(16, activation='tanh', name='tanh')(x)
-#     x = keras.layers.Dense(nout, activation='linear', name='predictions')(x)
     for k in range(4):
         x = keras.layers.Dense(16, activation='relu', **init)(x)
     x = keras.layers.Dense(nout, activation='tanh', name='tanh')(x)

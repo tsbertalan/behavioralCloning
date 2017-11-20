@@ -4,11 +4,13 @@ import tensorflow as tf, keras
 import h5py
 
 def isInteractive():
+    """Are we in a notebook?"""
     import __main__ as main
     return not hasattr(main, '__file__')
 
 
 class TensorBoardCallback(keras.callbacks.TensorBoard):
+    """Log loss and metrics to TensorBoard for progress monitoring."""
     
     def __init__(self, *args, everyK=1, **kwargs):
         keras.callbacks.TensorBoard.__init__(self, *args, **kwargs)
@@ -34,6 +36,7 @@ class TensorBoardCallback(keras.callbacks.TensorBoard):
 
 
 class TqdmCallback(keras.callbacks.Callback):
+    """Fill a progressbar with batches in terminal or notebook."""
     def __init__(self, nbatch):
         if isInteractive():
             Pbar = tqdm.tqdm_notebook
@@ -49,6 +52,7 @@ class TqdmCallback(keras.callbacks.Callback):
 
 
 def loadModel(modelPath):
+    """Load a model from HDF5 file."""
     from keras.models import load_model
     from keras import __version__ as keras_version
 
@@ -71,6 +75,7 @@ def fitModelWithDataGenerator(
     verbose=0,
     **kwargs
     ):
+    """Train a Keras model using our DataGenerator object."""
     trainGen = dataGenerator.generate()
     validGen = dataGenerator.generate(validation=True)
     steps_per_epoch = len(trainGen)
