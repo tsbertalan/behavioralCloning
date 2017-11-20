@@ -1,6 +1,6 @@
 # Behavioral cloning for end-to-end learning of steering angle control from video
 
-Tom Bertalan
+*Tom Bertalan*
 
 This is the third project in the first term of Udacity's Self Driving Car Nanodegree program.
 
