@@ -5,12 +5,12 @@ import nnUtils, loadData, models
 
 
 ## SET PARAMETERS.
-epochs = 18
+epochs = 6
 learningRate = .0001
-kernel_regularizer = keras.regularizers.l2(0.01)
+kernel_regularizer = keras.regularizers.l2(0.001)
 #bias_regularizer = keras.regularizers.l2(0.01)
 bias_regularizer = None
-epochSubsampling = 1
+epochSubsampling = .5
 denseActivation = 'tanh'
 lastActivation = 'tanh'
 batchBaseSize = 25
@@ -22,18 +22,19 @@ dataGenerator = loadData.DeemphasizedZeroDataGenerator(
     [
         os.path.join(loadData.HOME, 'data2', 'behavioralCloning', p)
         for p in (
-            'mouseForward.zip',
-            'mouseReverse.zip',
-            'longCarefulForward.zip',
-            'longCarefulReverse.zip',
-            'data_provided.zip',
-            'dirtSidesForward.zip',
-            'dirtSidesReverse.zip',
-            # 'jungleMouseCenterForward.zip',
-            # 'jungleMouseCenterReverse.zip',
+            # 'mouseForward.zip',
+            # 'mouseReverse.zip',
+            # 'longCarefulForward.zip',
+            # 'longCarefulReverse.zip',
+            # 'data_provided.zip',
+            # 'dirtSidesForward.zip',
+            # 'dirtSidesReverse.zip',
+            'jungleMouseCenterForward.zip',
+            'jungleMouseCenterReverse.zip',
         )
     ],
-    sidecamAdjustment=.15,
+    sidecamAdjustment=.5,
+    # For using different values of sidecamAdjustment per zipfile:
     #sidecamAdjustment=[.15, .15, .6, .6],
     batchBaseSize=batchBaseSize,
 )
@@ -41,7 +42,7 @@ dataGenerator = loadData.DeemphasizedZeroDataGenerator(
 
 ## DEFINE MODEL.
 modelname = (
-    'bigdata-deemZero-kl2%.1g-%depoch-subsamp%.1g-scads_%s-fc_%s-final_%s-batchBaseSize_%d' % (
+    'jungle-deemZero-kl2%.1g-%depoch-subsamp%.1g-scads_%s-fc_%s-final_%s-batchBaseSize_%d' % (
     kernel_regularizer.l2, epochs, epochSubsampling, 
     '_'.join(['%.2g' % sca for sca in dataGenerator.sidecamAdjustments]),
     denseActivation, lastActivation, batchBaseSize
@@ -56,7 +57,6 @@ model = models.Nvidia(
     denseActivation=denseActivation,
     lastActivation=lastActivation,
 )
-print(model.summary())
 
 
 ## TRAIN THE MODEL.

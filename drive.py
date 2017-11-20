@@ -30,7 +30,7 @@ maxThrottle = 2
 minThrottle = -1
 minSpeed = 1.0
 slowdownFactor = 2
-baseSpeedTarget = 30  # Can do 30 on the main track; need more like 12 for the jungle.
+baseSpeedTarget = 20  # Can do 30 on the main track; need more like 20 for the jungle.
 
 
 class SimplePIController:
