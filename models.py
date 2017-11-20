@@ -10,7 +10,7 @@ def prod(it):
             out *= int(x)
     return out
 
-def VGG(
+def InceptionV3(
     nout, input_shape,
     doCompile=True, 
     loss='mse', optimizer='nadam', metrics=['accuracy', 'mae'],
@@ -37,8 +37,7 @@ def VGG(
     x = model.layers[-1].output
     print('Pretrained model provides {:,} features.'.format(prod(x.shape[1:])))
     x = keras.layers.Flatten()(x)
-    
-    
+        
     # Add layers.
     init = dict(bias_initializer='zeros', kernel_initializer='glorot_normal')
     x = keras.layers.Dense(16, activation='relu', **init)(x)
@@ -71,6 +70,7 @@ def Nvidia(
     kernel_regularizer=None, bias_regularizer=None,
     convActivation='relu', denseActivation='relu', lastActivation='tanh'
     ):
+    """A simpler CNN architecture adapted from http://arxiv.org/abs/1604.07316"""
 
     # Normalize.
     x = img_input = keras.layers.Input(input_shape)
