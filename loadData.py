@@ -42,7 +42,6 @@ class DataGenerator(object):
         ):
 
         # Set attributes.
-        self.sidecamAdjustment = sidecamAdjustment
         self.verbose = verbose
         self.batchBaseSize = batchBaseSize
         self.responseKeys = responseKeys
@@ -55,14 +54,22 @@ class DataGenerator(object):
         assert len(zipPaths) > 0
         self.log = None
         self.subLogLengths = []
-        for path in zipPaths:
+        
+        # Unpack sidecamAdjustments
+        try:
+            sidecamAdjustments = [float(sidecamAdjustment)]*len(zipPaths)
+        except TypeError:
+            assert len(sidecamAdjustment) == len(zipPaths)
+            sidecamAdjustments = sidecamAdjustment
+        self.sidecamAdjustments = sidecamAdjustments
+        
+        # Extract and process CSV files.
+        for path, sidecamAdjustment in zip(zipPaths, sidecamAdjustments):
             # Unzip the zipfile.
-            print('basename is', os.path.basename(path))
             datadir = getDataDir(unzip(
                 path, verbose=verbose, 
                 outdir='/tmp/data/%s.dir/' % os.path.basename(path),
             ))
-            print('Data is in %s.' % datadir)
 
             # Load the log data.
             with open(os.path.join(datadir, 'driving_log.csv')) as f:
@@ -84,11 +91,15 @@ class DataGenerator(object):
                     v = newLog.at[i, key]
                     newLog.at[i, key] = os.path.join(datadir, 'IMG', os.path.basename(v))
 
+            # Append a sidecamAdjustment column.
+            newLog['sidecamAdjustment'] = [sidecamAdjustment] * len(newLog)
+
             # Append the log.
             if self.log is None:
                 self.log = newLog
             else:
                 self.log = pd.concat([self.log, newLog], ignore_index=True)
+
 
     def shuffle(self):
         # Take last part of each sublog as a validation set.
@@ -155,11 +166,12 @@ class DataGenerator(object):
         # and corresponding requested response variables.
         lcrImagePaths = [self.log.at[j, key] for key in _LCR]
         response = np.array([self.log.at[j, key] for key in self.responseKeys])
-        return lcrImagePaths, response
+        sidecamAdjustment = self.log.at[j, 'sidecamAdjustment']
+        return lcrImagePaths, response, sidecamAdjustment
 
     rowsPerSample = 3
     def sample(self, validation=False):
-        lcrImagePaths, response = self.sampleRow(validation=validation)
+        lcrImagePaths, response, sidecamAdjustment = self.sampleRow(validation=validation)
         X = []
         Y = []
         for icam, imagePath in enumerate(lcrImagePaths):
@@ -167,7 +179,7 @@ class DataGenerator(object):
             x = x.reshape((1, *x.shape))
             y = np.copy(response)
             # Make the steering angle adjustment for side cameras.
-            y[0] += [self.sidecamAdjustment, 0, -self.sidecamAdjustment][icam]
+            y[0] += [sidecamAdjustment, 0, -sidecamAdjustment][icam]
             X.append(x)
             Y.append(y)
 
@@ -251,7 +263,7 @@ class CenterOnlyDataGenerator(DataGenerator):
 
     rowsPerSample = 1
     def sample(self, validation=False):
-        lcrImagePaths, response = self.sampleRow(validation=validation)
+        lcrImagePaths, response, _ = self.sampleRow(validation=validation)
         x = misc.imread(lcrImagePaths[1])
         x = x.reshape((1, *x.shape))
         y = np.copy(response)
@@ -280,13 +292,14 @@ class DeemphasizedZeroDataGenerator(DataGenerator):
             # and corresponding requested response variables.
             lcrImagePaths = [self.log.at[j, key] for key in _LCR]
             response = np.array([self.log.at[j, key] for key in self.responseKeys])
+            sidecamAdjustment = self.log.at[j, 'sidecamAdjustment']
             
             # Check for acceptable steering angle.
             if response[0] != 0 or np.random.uniform(0, 1) < self.zeroKeepProbability:
                 break
-            
-        return lcrImagePaths, response
 
+        return lcrImagePaths, response, sidecamAdjustment
+            
 
 @contextmanager
 def timeit(label=None):

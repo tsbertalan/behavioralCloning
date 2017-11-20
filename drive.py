@@ -1,7 +1,9 @@
 import argparse
 import base64
+from collections import deque
 from datetime import datetime
 import os
+import time
 import shutil
 
 import numpy as np
@@ -21,8 +23,12 @@ from gauges import RotaryScale, root
 
 sio = socketio.Server()
 app = Flask(__name__)
-model = None
-prev_image_array = None
+
+maxThrottle = 2
+minThrottle = -1
+minSpeed = 1.0
+slowdownFactor = 2
+baseSpeedTarget = 30  # Can do 30 on the main track; need more like 12 for the jungle.
 
 
 class SimplePIController:
@@ -56,33 +62,6 @@ class SimplePIController:
         self.integral = 0
 
 
-
-maxThrottle = 2
-minSpeed = 1.0
-slowdownFactor = 1.5 # 1 is good enough for the main track; need more for the jungle.
-pbar = tqdm.tqdm(unit='frames')
-
-steeringAngleGauge = RotaryScale(
-    max_value=180., 
-    unit='°',
-    name='Steering Angle',
-    img_data='emptyGauge',
-    angleDirect=True,
-    needle_color='red',
-)
-
-controller = SimplePIController(0.05, 0.001)
-baseSpeedTarget = 30  # Can do 30 on the main track; need more like 12 for the jungle.
-controller.set_desired(baseSpeedTarget)
-
-throttleGauge = RotaryScale(
-    max_value=maxThrottle,
-    min_value=maxThrottle/-2.,
-    unit='',
-    name='Throttle',
-)
-
-from collections import deque
 class Smoother(object):
 
     def __init__(self, initial=0, callback=lambda mean: mean, **kwargs):
@@ -100,6 +79,30 @@ class Smoother(object):
     @property
     def value(self):
         return np.mean(self.q)
+
+
+# Make persistent objects.
+pbar = tqdm.tqdm(unit='frames')
+
+steeringAngleGauge = RotaryScale(
+    max_value=180., 
+    unit='°',
+    name='Steering Angle',
+    img_data='emptyGauge',
+    angleDirect=True,
+    needle_color='red',
+)
+
+controller = SimplePIController(0.05, 0.001)
+controller.set_desired(baseSpeedTarget)
+
+throttleGauge = RotaryScale(
+    max_value=maxThrottle,
+    min_value=maxThrottle/-2.,
+    unit='',
+    name='Throttle',
+)
+
 setPointSmoother = Smoother(maxlen=60, callback=controller.set_desired)
 
 @sio.on('telemetry')
@@ -130,14 +133,28 @@ def telemetry(sid, data):
         setPointSmoother(max(speedTarget, minSpeed))
 
         # It looks like angles actually aren't reported in radians or degrees.
-        radsPerUnit = .437
+        degsPerUnit = 25.
         steeringAngleGauge.set_value(
-            radsPerUnit * steering_angle * 180 / 3.14159 + 90. + 180,
-            radsPerUnit * steering_angle * 180 / 3.14159
+            degsPerUnit * steering_angle + 90. + 180,
+            degsPerUnit * steering_angle
         )
         throttle = min(controller.update(float(speed)), maxThrottle)
-        throttleGauge.set_value(throttle)
-        send_control(steering_angle, throttle)
+        if throttle == maxThrottle:
+            print('Stuck on a bump?')
+            # If we've reached maxThrottle, probably it's because we're stuck,
+            # and there was integral windup. Reset the integral term,
+            # but also give a sharp negative jostle to unstick the car.
+            # Sometimes it takes more than one.
+            controller.reset()
+            send_control(steering_angle, -4*throttle)
+            # Allow a short application period for the jolt to take effect.
+            time.sleep(.2)
+        elif throttle == minThrottle:
+            # Try not to send us careening backwards while ascending hills.
+            controller.reset()
+        else:
+            throttleGauge.set_value(throttle)
+            send_control(steering_angle, throttle)
 
         # save frame
         if args.image_folder != '':

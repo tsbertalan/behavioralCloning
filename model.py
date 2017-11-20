@@ -11,25 +11,30 @@ dataGenerator = loadData.DeemphasizedZeroDataGenerator(
         for p in (
             'mouseForward.zip',
             'mouseReverse.zip',
-            'longCarefulForward.zip',
-            'longCarefulReverse.zip',
+            # 'longCarefulForward.zip',
+            # 'longCarefulReverse.zip',
             # 'data_provided.zip',
             # 'dirtSidesForward.zip',
             # 'dirtSidesReverse.zip',
+            'jungleMouseCenterForward.zip',
+            'jungleMouseCenterReverse.zip',
         )
     ],
+    sidecamAdjustment=[.15, .15, .6, .6],
 )
 
 
 ## DEFINE MODEL.
 epochs = 6
 learningRate = .0001
-kernel_regularizer = keras.regularizers.l2(0.0001)
+kernel_regularizer = keras.regularizers.l2(0.001)
 #bias_regularizer = keras.regularizers.l2(0.01)
 bias_regularizer = None
+epochSubsampling = 1
 modelname = (
-    'deemZero-mouse_longCare-kl2%.1g-%depoch-subsamp%.1g' % (
-    kernel_regularizer.l2, epochs, epochSubsampling
+    'mouseJungle-deemZero-kl2%.1g-%depoch-subsamp%.1g-scads_%s' % (
+    kernel_regularizer.l2, epochs, epochSubsampling, 
+    '_'.join(['%.2g' % sca for sca in dataGenerator.sidecamAdjustments])
 )).replace('0.', 'p')
 
 model = models.Nvidia(
@@ -41,9 +46,11 @@ model = models.Nvidia(
     bias_regularizer=bias_regularizer,
 )
 
+print(model.summary())
+
 
 ## TRAIN THE MODEL.
-trainGen = dataGenerator.generate(epochSubsampling=1)
+trainGen = dataGenerator.generate(epochSubsampling=epochSubsampling)
 validGen = dataGenerator.generate(validation=True)
 history = nnUtils.fitModelWithDataGenerator(
     model, dataGenerator, modelname, 
@@ -90,11 +97,11 @@ for ind, lab in zip(dataGenerator._indices, ('train', 'validation')):
     
     fig, ax = plt.subplots()
     if lab == 'train':
-        start = 580
-        end = start + 160
+        start = 700
+        end = start + 200
     else:
-        start = 243
-        end = start + 60
+        start = 0
+        end = start + 200
     samples = range(start, end)
     
     ax.plot(samples, Y[start:end], label=r'truth $\theta$', color='black')
@@ -137,5 +144,9 @@ for ind, lab in zip(dataGenerator._indices, ('train', 'validation')):
         'doc/smoothingEffect-%s.png' % lab,
     ]:
         fig.savefig(fpath)
+
+# or if you are using keras, you cant get the session instance, you can run folloing code at end of your code:
+# https://github.com/tensorflow/tensorflow/issues/3388
+import gc; gc.collect()
     
-plt.show()
+#plt.show()
