@@ -1,3 +1,4 @@
+"""Utility functions for training Keras networks."""
 import tqdm
 import time
 import tensorflow as tf, keras

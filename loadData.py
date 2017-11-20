@@ -1,3 +1,4 @@
+"""Classes for loading data from zip files."""
 from contextlib import contextmanager
 import datetime, time, os
 import matplotlib.pyplot as plt, matplotlib as mpl

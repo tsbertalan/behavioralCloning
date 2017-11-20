@@ -1,3 +1,7 @@
+"""Use a pre-trained model to drive the car.
+
+Based on code from Udacity.
+"""
 import argparse
 import base64
 from collections import deque

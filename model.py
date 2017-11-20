@@ -1,3 +1,4 @@
+"""Train and save the network model."""
 import os.path
 import keras, numpy as np, matplotlib.pyplot as plt
 import nnUtils, loadData, models

@@ -1,3 +1,4 @@
+"""Model constructor functions."""
 import keras
 
 def prod(it):
