@@ -100,7 +100,7 @@ Initially, since network outputs appeared very noisy, I added temporal smoothing
 
 Eventually, the (unfiltered) network results were good enough to control the car reliably at its maximum speed of 30 MPH on straight sections, and almost this on curves. To accommodate this variability, I allowed the base speed `baseSpeedTarget` to be reduced by the absolute value of the turn angle, multiplied by a scalar `slowdownFactor`. This set point was then smoothed with a long-term running average of the past 60 values before being passed to the speed PI controller. Obviously, it would be better to anticipate curves, and slow down in advance, but that would require a different model. This is at least a little better than a static speed.
 
-`baseSpeedTarget` can be set to the maximum value of 30 MPH for the main course, but must be reduced to 20 for partial success on the jungle course. With this setting, however, the [network](https://www.dropbox.com/s/lt905x2b1pgqorm/jungle.h5?dl=1) trained only on the jungle track is capable of twitching its way around the primary course.
+`baseSpeedTarget` can be set to the maximum value of 30 MPH for the main course, but must be reduced to 20 for partial success on the jungle course. With this setting, however, the [network](https://www.dropbox.com/s/lt905x2b1pgqorm/jungle.h5?dl=1) trained only on the jungle track is capable of twitching its way around the primary course ([video here](https://youtu.be/T3OMHUiD5is)).
 
 
 ## Other notes.
