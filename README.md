@@ -5,6 +5,17 @@
 This is the third project in the first term of Udacity's Self Driving Car Nanodegree program.
 
 
+## Videos
+
+Main track:
+
+[![Main track](https://img.youtube.com/vi/d0kWB-mOyhk/0.jpg)](https://www.youtube.com/watch?v=d0kWB-mOyhk)
+
+An attempt at the jungle track:
+
+[![Jungle track](https://img.youtube.com/vi/z7VjrbWLlXE/0.jpg)](https://www.youtube.com/watch?v=z7VjrbWLlXE)
+
+
 ## Architecture development and training method
 
 Initially, I made a very small convolutional network of only a couple layers, just to get a pipeline established. This predictably performed pretty poorly, though I suspect that, with some of the many other modifications I subsequently made to the full pipeline, even this would have done reasonably well.
@@ -97,17 +108,6 @@ While investigating the effect of different `sidecamAdjustment` values, I used a
 Occasionally on the main track, and frequently on the jungle track, the wheels would lock up and the car would not move until the brakes were tapped manually, despite nonzero speed setpoint. This may have been bug in the physics, or may have been a bug in the PI controller (I have modified the controller to zero the integral term when brakes or gas is tapped, to short-circuit integral windup). To combat this and give the car a fighting chance of finishing the jungle track, I monitor the throttle computed by the PI controller, and, when it reaches its maximum value of about 2, I instead apply a throttle value of `-4*maxThrottle`, hold this for a fraction of a second, then reset the integral term on the speed controller. Frequently, this dislodges the car and the speed controller can resume work.
 
 Still, a major challenge of the jungle track is its many steep hills, which makes the naive PI speed controller less effective. A useful project would be to produce a speed controller that understoood that more inclined tracks (however that might be detected) require a different control policy than ground. Downhill segments didn't seem to pose a symmetric difficulty, perhaps because braking to a standstill seems to provide a stronger deceleration than speeding up (forward or backward) from a standstill.
-
-
-## Videos
-
-Main track:
-
-[![Main track](https://img.youtube.com/vi/d0kWB-mOyhk/0.jpg)](https://www.youtube.com/watch?v=d0kWB-mOyhk)
-
-An attempt at the jungle track:
-
-[![Jungle track](https://img.youtube.com/vi/z7VjrbWLlXE/0.jpg)](https://www.youtube.com/watch?v=z7VjrbWLlXE)
 
 
 ## References

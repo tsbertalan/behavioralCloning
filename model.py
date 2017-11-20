@@ -5,12 +5,12 @@ import nnUtils, loadData, models
 
 
 ## SET PARAMETERS.
-epochs = 6
+epochs = 18
 learningRate = .0001
 kernel_regularizer = keras.regularizers.l2(0.001)
 #bias_regularizer = keras.regularizers.l2(0.01)
 bias_regularizer = None
-epochSubsampling = .5
+epochSubsampling = 1
 denseActivation = 'tanh'
 lastActivation = 'tanh'
 batchBaseSize = 25
