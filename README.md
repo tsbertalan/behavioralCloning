@@ -48,7 +48,7 @@ Training/validation split is accomplished by marking the last 20% of each CSV fi
 One very important note for data collection is that continuous labels (obtained with mouse steering) worked much better than discrete (keyboard input). Even still, the actual range of mouse motion required was often very small, leading to single-pixel mouse movements that effectively quantize the response variable in shallow curves and on long straightaways. This might have been prevented with a larger window size (I used the minimum) or joystick input. The effect of this is visible in the steering-angle-vs-time plots below, in which the training/validation data flips rapidly between zero and nonzero values. The better control input is in fact more of an average of these.
 
 This can also be observed in a histogram of the response values. In red is shown the distribution for a typical dataset, with a strong spike for the bin including 0 that extends beyond the top of the plot. If a histogram is generated such that the central bin contains only zero values (its symmetric left and right edges are set to just excluded the nearest non-zero value), and other bins of the same size are tiled across the remaining occupied domain, the average bin count in bins other than the central one is approximately 7% of the count in the central (zero)  bin.
-![response histograms](zeroCenteredKeptWP0p07.png)
+![response histograms](doc/zeroCenteredKeptWP0p07.png)
 
 With this realization, and the generator approach to producing training and validation data, I modified my data generation method to produce the histogram shown in blue. Specifically, when a row in the table was drawn with a zero associated turn angle, I rejected this row and drew another with probability 7%. This greatly enhanced the network's ability to detect and turn corners.
 
@@ -58,23 +58,23 @@ However, in addition to this data leveling, I applied weak l2 regularization to 
 ### Cropping and use of alternate camera angles
 
 Since this particular architecture does not do any planning (unlike, perhaps, an LSTM), but only reacts to the present, I removed portions of the input irrelevant to this reaction task. This helps with consistency of the responses as well as makes better use of parameters, as the network does not need to dedicate filters to deciding features are irrelvant (trees, lakes, etc.).
-![cropped comparison](cropped.png)
+![cropped comparison](doc/cropped.png)
 
 A big boost was obtained by using the two provided off-center camera views to synthesize recovery data. Specifically, each steering angle was accompanied by a left, center, and right camera view. I produced a conventional training pair from the center camera view and associated steering angle, but then supplemented this with two the additional views with the steering angle correspondingly decremented or incremented by a fixed value of `sidecamAdjustment`.
-![cropped left view](croppedleft.png)
+![cropped left view](doc/croppedleft.png)
 
 On the main track, training with `sidecamAdjustment` set to .9 results in sharp flailing (like a too-large `kp` on a proportional controller). Setting it to .01 results in running off the road. One way to determine the "correct" value would be to find the center image most similar to each side image, then choose the sidecamAdjustment value that brings the corresponding steering angles into closest agreement. This would depend on the measure of closeness--one possibility is to take a previously trained network, and forward-evaluate the final flattened feature vector after the convolutional layers. "Closest" could then be taken in the Euclidean sense in this space.
 
 Another possibile approach is to observe the control actions suggested for a known smooth curve in the road--in this sequence of plots [doc/sidecamstrength], somewhere between .1 and .2 is the dividing line where the controller starts producing actual negative values rather than only zeros (corresponding to a lack of rightward turn torque, and therefore appropriate for maintaining a gentle rightward turn). I settled on 0.15 on the main track, for a smoother response with less oscillation, and 0.6 on the jungle track, where the track was narrower and the speed lower.
 
 Sidecams steering angles adjusted by 0.1:
-![.1](sidecamstrength/smoothingEffect-deemZero-mouse-kl2p0001-1epoch-subsampp1-scam_p1-train.png)
+![.1](doc/sidecamstrength/smoothingEffect-deemZero-mouse-kl2p0001-1epoch-subsampp1-scam_p1-train.png)
 
 Sidecams steering angles adjusted by 0.2:
-![.2](sidecamstrength/smoothingEffect-deemZero-mouse-kl2p0001-1epoch-subsampp1-scam_p2-train.png)
+![.2](doc/sidecamstrength/smoothingEffect-deemZero-mouse-kl2p0001-1epoch-subsampp1-scam_p2-train.png)
 
 Sidecams steering angles adjusted by 0.3:
-![.3](sidecamstrength/smoothingEffect-deemZero-mouse-kl2p0001-1epoch-subsampp1-scam_p3-train.png)
+![.3](doc/sidecamstrength/smoothingEffect-deemZero-mouse-kl2p0001-1epoch-subsampp1-scam_p3-train.png)
 
 Interestingly, this insight provides most of what is needed to get some sort of results on the jungle track. There, much higher values of `sidecamAdjustment` are required to emphasize the much larger need for corrective steering when off centerline; for which reason I added the ability to specify `sidecamAdjustment` separately per zip file. Additionally, a lower target maximum speed helps, as well as a more aggressive back-off on speed when turning is detected (see post-processing section below).
 
