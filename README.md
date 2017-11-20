@@ -105,7 +105,7 @@ Main track:
 
 [![Main track](https://img.youtube.com/vi/d0kWB-mOyhk/0.jpg)](https://www.youtube.com/watch?v=d0kWB-mOyhk)
 
-Jungle track:
+An attempt at the jungle track:
 
 [![Jungle track](https://img.youtube.com/vi/z7VjrbWLlXE/0.jpg)](https://www.youtube.com/watch?v=z7VjrbWLlXE)
 
