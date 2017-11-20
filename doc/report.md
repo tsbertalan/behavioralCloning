@@ -26,14 +26,13 @@ Instead, I dropped the transfer learning approach and adopted the network struct
 | Conv2D     | 3           | (1, 1) | (None, 4, 23, 64)    |    27712            | Relu       |
 | Conv2D     | 3           | (1, 1) | (None, 2, 21, 64)    |    36928            | Relu       |
 | Flatten    |             |        | (None, 2688)         |    0                |            | 
-| Dense      |             |        | (None, 100)          |    268900           | Relu       |
-| Dense      |             |        | (None, 50)           |    5050             | Relu       |
-| Dense      |             |        | (None, 10)           |    510              | Relu       |
+| Dense      |             |        | (None, 100)          |    268900           | Tanh       |
+| Dense      |             |        | (None, 50)           |    5050             | Tanh       |
+| Dense      |             |        | (None, 10)           |    510              | Tanh       |
 | Dense      |             |        | (None, 1)            |    11               | Tanh       |
 |            |             |        |                      | Total: 405,819      |            |
 
-Here, the Lambda layer is used to convert the cropped image from 8-bit unsigned integer in [0, 255] to floating point in [-1, 1]. As in the InceptionV3 architecture, the bulk of the parameters go to the transition from flattend Conv2D features to the dense function layers. A final Tanh activation is used
-to ensure output in the correct range.
+Here, the Lambda layer is used to convert the cropped image from 8-bit unsigned integer in [0, 255] to floating point in [-1, 1]. As in the InceptionV3 architecture, the bulk of the parameters go to the transition from flattend Conv2D features to the dense function layers. Tanh activation on the fully connected layers seems to provide smoother response (though more regularization is required), and ensures output in the full [-1, 1] range.
 
 ## Data, data augmentation, and preprocessing
 
@@ -41,9 +40,7 @@ Eventually, I found that very good results were obtainable using only the provid
 
 In order to accommodate large datasets, I produced a `DataGenerator` class that worked with Keras's `Model.fit_generator` method to read images from the hard drive only as needed. Since Keras accumulates this data in a queue for feeding to to the optimizer, and batches appeared to be read from the generator initially faster than they were consumed by the optimizer, I do not believe that this was a bottleneck to training speed. This method also allows for combining several datasets gathered separately (each of which is stored as a zip file of the same structure as the provided data) into one mixed stream of training and validation data. Each dataset is extracted to temporary storage before training, and comprises a subdirectory full of `left_*.png`, `center_*.png`, and `right_*.png` images, as well as a CSV file in the top level listing paths to images with their corresponding response variable values (principally, steering angle).
 
-Training/validation split is accomplished by marking the last 20% of each CSV file as validation data, concatenating all the files, and generating (for each epoch) a scrambled ordering. A random train/validation split cannot be used since it would result in training and validation samples close together in time, and therefore also close together in both input and response values.
-
-TODO: Tes?t
+Training/validation split is accomplished by marking the last 20% of each CSV file as validation data, concatenating all the files, and generating (for each epoch) a scrambled ordering. A random train/validation split cannot be used since it would result in training and validation samples close together in time, and therefore also close together in both input and response values. I did not create a test split, choosing instead to "test" in the simulator.
 
 
 ### Response distribution leveling
@@ -84,7 +81,7 @@ Interestingly, this insight provides most of what is needed to get some sort of 
 
 ## Post-Processing
 
-Initially, since network outputs appeared very noisy, I added temporal smoothing by using a running average of the last 6 or so steering angle predictions. Since this had the effect of damping out needed strong turns, I multiplied this average by an arbitrary scaling factor of about two. However, this approach predictably did more harm than good as the network outputs became better (through improved architecture and preprocessing). In particular, temporal smoothing makes it difficult for the controller to respond to quickly changing inputs, as appear when the car is moving more quickly. With this smoothing in place, the speed had to be fixed at as low as 5 MPH to avoid curb strikes.
+Initially, since network outputs appeared very noisy, I added temporal smoothing by using a running average of the last 6 or so steering angle predictions (denoted as $\hat\rho$). Since this had the effect of damping out needed strong turns, I multiplied this average by an arbitrary scaling factor of about two. However, this approach predictably did more harm than good as the network outputs became better (through improved architecture and preprocessing). In particular, temporal smoothing makes it difficult for the controller to respond to quickly changing inputs, as appear when the car is moving more quickly. With this smoothing in place, the speed had to be fixed at as low as 5 MPH to avoid curb strikes.
 
 Eventually, the (unfiltered) network results were good enough to control the car reliably at its maximum speed of 30 MPH on straight sections, and almost this on curves. To accommodate this variability, I allowed the base speed `baseSpeedTarget` to be reduced by the absolute value of the turn angle, multiplied by a scalar `slowdownFactor`. This set point was then smoothed with a long-term running average of the past 60 values before being passed to the speed PI controller. Obviously, it would be better to anticipate curves, and slow down in advance, but that would require a different model. This is at least a little better than a static speed.
 
@@ -101,6 +98,13 @@ Still, a major challenge of the jungle track is its many steep hills, which make
 
 
 ## Videos
+
+Main track:
+[![Main track](https://img.youtube.com/vi/d0kWB-mOyhk/0.jpg)](https://www.youtube.com/watch?v=d0kWB-mOyhk)
+
+Jungle track:
+[![Jungle track](https://img.youtube.com/vi/z7VjrbWLlXE/0.jpg)](https://www.youtube.com/watch?v=z7VjrbWLlXE)
+
 
 ## References
 

@@ -3,6 +3,18 @@ import keras, numpy as np, matplotlib.pyplot as plt
 import nnUtils, loadData, models
 
 
+## SET PARAMETERS.
+epochs = 18
+learningRate = .0001
+kernel_regularizer = keras.regularizers.l2(0.01)
+#bias_regularizer = keras.regularizers.l2(0.01)
+bias_regularizer = None
+epochSubsampling = 1
+denseActivation = 'tanh'
+lastActivation = 'tanh'
+batchBaseSize = 25
+
+
 ## CREATE DATA GENERATOR.
 datadir = os.path.join(os.path.expanduser('~'), 'data2', 'behavioralCloning')
 dataGenerator = loadData.DeemphasizedZeroDataGenerator(
@@ -11,32 +23,28 @@ dataGenerator = loadData.DeemphasizedZeroDataGenerator(
         for p in (
             'mouseForward.zip',
             'mouseReverse.zip',
-            # 'longCarefulForward.zip',
-            # 'longCarefulReverse.zip',
-            # 'data_provided.zip',
-            # 'dirtSidesForward.zip',
-            # 'dirtSidesReverse.zip',
-            'jungleMouseCenterForward.zip',
-            'jungleMouseCenterReverse.zip',
+            'longCarefulForward.zip',
+            'longCarefulReverse.zip',
+            'data_provided.zip',
+            'dirtSidesForward.zip',
+            'dirtSidesReverse.zip',
+            # 'jungleMouseCenterForward.zip',
+            # 'jungleMouseCenterReverse.zip',
         )
     ],
-    sidecamAdjustment=[.15, .15, .6, .6],
+    sidecamAdjustment=.15,
+    #sidecamAdjustment=[.15, .15, .6, .6],
+    batchBaseSize=batchBaseSize,
 )
 
 
 ## DEFINE MODEL.
-epochs = 6
-learningRate = .0001
-kernel_regularizer = keras.regularizers.l2(0.001)
-#bias_regularizer = keras.regularizers.l2(0.01)
-bias_regularizer = None
-epochSubsampling = 1
 modelname = (
-    'mouseJungle-deemZero-kl2%.1g-%depoch-subsamp%.1g-scads_%s' % (
+    'bigdata-deemZero-kl2%.1g-%depoch-subsamp%.1g-scads_%s-fc_%s-final_%s-batchBaseSize_%d' % (
     kernel_regularizer.l2, epochs, epochSubsampling, 
-    '_'.join(['%.2g' % sca for sca in dataGenerator.sidecamAdjustments])
+    '_'.join(['%.2g' % sca for sca in dataGenerator.sidecamAdjustments]),
+    denseActivation, lastActivation, batchBaseSize
 )).replace('0.', 'p')
-
 model = models.Nvidia(
     len(dataGenerator.responseKeys), dataGenerator.sampleImageShape,
     optimizer=keras.optimizers.Nadam(
@@ -44,8 +52,9 @@ model = models.Nvidia(
     ),
     kernel_regularizer=kernel_regularizer,
     bias_regularizer=bias_regularizer,
+    denseActivation=denseActivation,
+    lastActivation=lastActivation,
 )
-
 print(model.summary())
 
 
