@@ -102,9 +102,11 @@ Still, a major challenge of the jungle track is its many steep hills, which make
 ## Videos
 
 Main track:
+
 [![Main track](https://img.youtube.com/vi/d0kWB-mOyhk/0.jpg)](https://www.youtube.com/watch?v=d0kWB-mOyhk)
 
 Jungle track:
+
 [![Jungle track](https://img.youtube.com/vi/z7VjrbWLlXE/0.jpg)](https://www.youtube.com/watch?v=z7VjrbWLlXE)
 
 
